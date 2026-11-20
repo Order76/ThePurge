@@ -9,7 +9,7 @@
   "database": "PostgreSQL on Railway",
   "framework": "discord.js v14",
   "runtime": "Node.js >=20",
-  "repository": "https://github.com/Puettse/ThePurge",
+  "repository": "https://github.com/Order76/ThePurge",
   "highlights": [
     "Lazy-loaded Discord command modules with feature-level failure boundaries",
     "Built-in Express dashboard and Discord OAuth login",
