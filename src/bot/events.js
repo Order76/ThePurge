@@ -58,15 +58,27 @@ export function wireDiscordEvents(context) {
     await runEventFeature(context, 'welcome', () => handleWelcome(context, member));
     const { loadSettings, handleVerificationJoin } = await import('../services/verificationService.js');
     const verification = member.user.bot ? null : await loadSettings(context.db, member.guild.id).catch(() => null);
+    const joinInfo = { verification: Boolean(verification) };
     if (verification) {
       // Roles wait until the member passes verification (the invite role is remembered now, while it can be detected).
-      await runEventFeature(context, 'verification', () => handleVerificationJoin(context, member, verification));
-      return;
+      await runEventFeature(context, 'verification', async () => {
+        const found = await handleVerificationJoin(context, member, verification);
+        joinInfo.inviteCode = found?.inviteCode;
+        joinInfo.inviteRoleName = found?.inviteRoleId ? member.guild.roles.cache.get(found.inviteRoleId)?.name : undefined;
+      });
+    } else {
+      await runEventFeature(context, 'autoroles', () => handleJoinRole(context, member));
+      await runEventFeature(context, 'inviteRoles', async () => {
+        const { getLogChannelId, handleInviteRoleJoin } = await import('../services/inviteRoleService.js');
+        const result = await handleInviteRoleJoin(context, member, { logChannelId: await getLogChannelId(context.db, member.guild.id) });
+        joinInfo.inviteCode = result?.code;
+        const roleId = result?.given || result?.pending;
+        joinInfo.inviteRoleName = roleId ? member.guild.roles.cache.get(roleId)?.name : undefined;
+      });
     }
-    await runEventFeature(context, 'autoroles', () => handleJoinRole(context, member));
-    await runEventFeature(context, 'inviteRoles', async () => {
-      const { getLogChannelId, handleInviteRoleJoin } = await import('../services/inviteRoleService.js');
-      await handleInviteRoleJoin(context, member, { logChannelId: await getLogChannelId(context.db, member.guild.id) });
+    await runEventFeature(context, 'joinAlerts', async () => {
+      const { sendJoinAlerts } = await import('../services/joinAlertService.js');
+      await sendJoinAlerts(context, member, joinInfo);
     });
   });
 

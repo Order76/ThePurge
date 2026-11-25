@@ -15,6 +15,7 @@ const commandLoaders = {
   ticket: () => import('./tickets.js').then((module) => module.handleTicket),
   inviterole: () => import('./inviteRoles.js').then((module) => module.handleInviteRole),
   verify: () => import('../../services/verificationService.js').then((module) => module.handleVerifyCommand),
+  joinalerts: () => import('../../services/joinAlertService.js').then((module) => module.handleJoinAlertsCommand),
 };
 
 const buttonLoaders = {

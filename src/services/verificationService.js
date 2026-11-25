@@ -202,6 +202,7 @@ export async function handleVerificationJoin(context, member, settings) {
   await sendLog(member.guild, settings.logChannelId, {
     content: `👋 ${member} joined (account ${age} days old${inviteCode ? `, invite ${inviteCode}` : ''}). Waiting for verification.`,
   });
+  return { inviteRoleId, inviteCode };
 }
 
 async function startChallenge(interaction, key, note = '') {

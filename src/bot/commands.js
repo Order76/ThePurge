@@ -343,4 +343,19 @@ export const commandData = [
     .addSubcommand((command) => command
       .setName('off')
       .setDescription('Switch verification off (new members get the join role straight away).')),
+  new SlashCommandBuilder()
+    .setName('joinalerts')
+    .setDescription('Get a DM from the bot every time someone joins.')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .addSubcommand((command) => command
+      .setName('on')
+      .setDescription('Send join DMs to you (or another staff member).')
+      .addUserOption((option) => option.setName('user').setDescription('Who gets the DMs (default: you)').setRequired(false)))
+    .addSubcommand((command) => command
+      .setName('off')
+      .setDescription('Stop join DMs for you (or another staff member).')
+      .addUserOption((option) => option.setName('user').setDescription('Who to stop (default: you)').setRequired(false)))
+    .addSubcommand((command) => command
+      .setName('list')
+      .setDescription('Who gets join DMs.')),
 ].map((command) => command.toJSON());
