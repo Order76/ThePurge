@@ -13,10 +13,12 @@ const commandLoaders = {
   rank: () => import('./engagement.js').then((module) => module.handleRank),
   economy: () => import('./engagement.js').then((module) => module.handleEconomy),
   ticket: () => import('./tickets.js').then((module) => module.handleTicket),
+  inviterole: () => import('./inviteRoles.js').then((module) => module.handleInviteRole),
 };
 
 const buttonLoaders = {
   ticket: () => import('./tickets.js').then((module) => module.handleTicketButton),
+  inviterole: () => import('../../services/inviteRoleService.js').then((module) => module.handleApprovalButton),
 };
 
 export async function resolveCommandHandler(commandName) {

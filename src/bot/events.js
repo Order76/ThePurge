@@ -15,6 +15,14 @@ export function wireDiscordEvents(context) {
     for (const guild of client.guilds.cache.values()) {
       await ensureGuild(db, guild);
     }
+
+    await runEventFeature(context, 'inviteRoles', async () => {
+      const { loadLinks, refreshInviteCache } = await import('../services/inviteRoleService.js');
+      for (const guild of client.guilds.cache.values()) {
+        const links = await loadLinks(db, guild.id);
+        if (Object.keys(links).length > 0) await refreshInviteCache(guild);
+      }
+    });
   });
 
   client.on('guildCreate', async (guild) => {
@@ -48,6 +56,24 @@ export function wireDiscordEvents(context) {
   client.on('guildMemberAdd', async (member) => {
     await runEventFeature(context, 'welcome', () => handleWelcome(context, member));
     await runEventFeature(context, 'autoroles', () => handleJoinRole(context, member));
+    await runEventFeature(context, 'inviteRoles', async () => {
+      const { getLogChannelId, handleInviteRoleJoin } = await import('../services/inviteRoleService.js');
+      await handleInviteRoleJoin(context, member, { logChannelId: await getLogChannelId(context.db, member.guild.id) });
+    });
+  });
+
+  client.on('inviteCreate', async (invite) => {
+    await runEventFeature(context, 'inviteRoles', async () => {
+      const { rememberInvite } = await import('../services/inviteRoleService.js');
+      rememberInvite(invite);
+    });
+  });
+
+  client.on('inviteDelete', async (invite) => {
+    await runEventFeature(context, 'inviteRoles', async () => {
+      const { forgetInvite } = await import('../services/inviteRoleService.js');
+      forgetInvite(invite);
+    });
   });
 
   client.on('guildMemberRemove', async (member) => {

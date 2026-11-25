@@ -12,6 +12,7 @@ test('all planned public commands are registered', () => {
     'dashboard',
     'economy',
     'invite',
+    'inviterole',
     'logs',
     'mod',
     'purge',

@@ -10,6 +10,7 @@ All notable changes to ThePurge are documented here.
 - Form answers open a private ticket channel named `<kind>-<number>`, are shown in the ticket, saved in `tickets.form_responses`, and posted to the staff log channel on open and close.
 - Panels now use the `questions` column to hold their ticket kinds; panels with no kinds keep the classic single Open Ticket button.
 - `/ticket feedbackpanel backlog:` (optional forum channel): Concern and Suggestion tickets also file a backlog story post (`TKT-<id> · Kind: subject`) with a user story, details, acceptance checklist, a link to the ticket and the forum tags for type, New and P3 Normal when they exist.
+- Added `/inviterole create-all channel:` and `/inviterole list`: one permanent invite per role. Joining through a link gives that role; roles with staff powers (kick, manage messages and similar) are never given automatically: staff get a Give / Decline prompt in the log channel. Uses the Guild Invites gateway intent to tell which invite was used.
 
 ### Unchanged
 

@@ -9,6 +9,12 @@ export async function handleInteraction(context, interaction) {
       return;
     }
 
+    if (interaction.isButton() && interaction.customId.startsWith('inviterole:')) {
+      const handler = await resolveButtonHandler('inviterole');
+      await handler(context, interaction);
+      return;
+    }
+
     if (!interaction.isChatInputCommand()) return;
 
     if (!interaction.guild) {

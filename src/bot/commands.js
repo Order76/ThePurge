@@ -133,6 +133,20 @@ export const commandData = [
       .setDescription('Set the role assigned to new members.')
       .addRoleOption((option) => option.setName('role').setDescription('Role').setRequired(true))),
   new SlashCommandBuilder()
+    .setName('inviterole')
+    .setDescription('Permanent invite links that give a role to whoever joins through them.')
+    .addSubcommand((command) => command
+      .setName('create-all')
+      .setDescription('Make one permanent invite per role (staff-power roles need approval on join).')
+      .addChannelOption((option) => option
+        .setName('channel')
+        .setDescription('Channel new members land in')
+        .addChannelTypes(ChannelType.GuildText)
+        .setRequired(true)))
+    .addSubcommand((command) => command
+      .setName('list')
+      .setDescription('Show the role invite links.')),
+  new SlashCommandBuilder()
     .setName('schedule')
     .setDescription('Manage scheduled jobs.')
     .addSubcommand((command) => command
