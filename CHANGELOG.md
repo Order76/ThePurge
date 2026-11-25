@@ -2,6 +2,18 @@
 
 All notable changes to ThePurge are documented here.
 
+## [4.5.0] - 2026-11-25
+
+### Added
+
+- Added `/ticket feedbackpanel`: one panel with Feedback, Suggestion, Concern and Review buttons. Each button opens a short pop-up form (Review includes a 1-5 star rating).
+- Form answers open a private ticket channel named `<kind>-<number>`, are shown in the ticket, saved in `tickets.form_responses`, and posted to the staff log channel on open and close.
+- Panels now use the `questions` column to hold their ticket kinds; panels with no kinds keep the classic single Open Ticket button.
+
+### Unchanged
+
+- Classic ticket panels, claim, close, transcripts and the dashboard work as before. Only form tickets post to the log channel.
+
 ## [4.4.0] - 2026-07-10
 
 ### Added

@@ -233,6 +233,36 @@ export const commandData = [
         .setDescription('Open button label')
         .setRequired(false)))
     .addSubcommand((command) => command
+      .setName('feedbackpanel')
+      .setDescription('Post a Feedback / Suggestion / Concern / Review panel with short forms.')
+      .addChannelOption((option) => option
+        .setName('channel')
+        .setDescription('Channel where the panel is posted')
+        .addChannelTypes(ChannelType.GuildText)
+        .setRequired(true))
+      .addRoleOption((option) => option
+        .setName('staff-role')
+        .setDescription('Role that can see and answer the tickets')
+        .setRequired(true))
+      .addChannelOption((option) => option
+        .setName('log-channel')
+        .setDescription('Staff channel where new and closed tickets are logged')
+        .addChannelTypes(ChannelType.GuildText)
+        .setRequired(false))
+      .addChannelOption((option) => option
+        .setName('category')
+        .setDescription('Category where ticket channels are created')
+        .addChannelTypes(ChannelType.GuildCategory)
+        .setRequired(false))
+      .addStringOption((option) => option
+        .setName('title')
+        .setDescription('Panel title (default: Feedback & Reviews)')
+        .setRequired(false))
+      .addStringOption((option) => option
+        .setName('description')
+        .setDescription('Panel text')
+        .setRequired(false)))
+    .addSubcommand((command) => command
       .setName('claim')
       .setDescription('Claim the current ticket.'))
     .addSubcommand((command) => command

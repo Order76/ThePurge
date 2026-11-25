@@ -4,8 +4,11 @@ import {
   claimTicket,
   closeTicket,
   createTicketPanel,
+  openFormTicket,
   openTicketFromPanel,
+  showTicketForm,
 } from '../../services/ticketService.js';
+import { FEEDBACK_KINDS, parseTicketCustomId } from '../../services/ticketForms.js';
 
 export async function handleTicket(context, interaction) {
   if (!(await isModuleEnabled(context.db, interaction.guild.id, 'tickets'))) {
@@ -25,6 +28,11 @@ export async function handleTicket(context, interaction) {
     return;
   }
 
+  if (subcommand === 'feedbackpanel') {
+    await handleFeedbackPanel(context, interaction);
+    return;
+  }
+
   if (subcommand === 'claim') {
     const result = await claimTicket(context, interaction);
     await interaction.reply({ content: result.message, ephemeral: !result.ok });
@@ -39,9 +47,21 @@ export async function handleTicket(context, interaction) {
 }
 
 export async function handleTicketButton(context, interaction) {
-  const [, action, id] = interaction.customId.split(':');
+  const { action, id, kind } = parseTicketCustomId(interaction.customId) || {};
 
   try {
+    if (action === 'form') {
+      await showTicketForm(context, interaction, id, kind);
+      return;
+    }
+
+    if (action === 'submit') {
+      await interaction.deferReply({ ephemeral: true });
+      const result = await openFormTicket(context, interaction, id, kind);
+      await interaction.editReply(result.message);
+      return;
+    }
+
     if (action === 'open') {
       await interaction.deferReply({ ephemeral: true });
       const result = await openTicketFromPanel(context, interaction, id);
@@ -137,4 +157,43 @@ async function handleTicketPanel(context, interaction) {
   });
 
   await interaction.reply({ content: `Ticket panel #${panel.id} posted in ${channel}.`, ephemeral: true });
+}
+
+async function handleFeedbackPanel(context, interaction) {
+  if (!hasManageGuild(interaction.member)) {
+    await interaction.reply({ content: 'Manage Server permission is required.', ephemeral: true });
+    return;
+  }
+
+  const channel = interaction.options.getChannel('channel', true);
+  const staffRole = interaction.options.getRole('staff-role', true);
+  const logChannel = interaction.options.getChannel('log-channel');
+  const category = interaction.options.getChannel('category');
+
+  await context.db.query(
+    `
+    INSERT INTO module_settings (guild_id, module_name, enabled, config, updated_at)
+    VALUES ($1, 'tickets', TRUE, $2, NOW())
+    ON CONFLICT (guild_id, module_name) DO UPDATE SET
+      enabled = TRUE,
+      config = module_settings.config || EXCLUDED.config,
+      updated_at = NOW();
+    `,
+    [interaction.guild.id, JSON.stringify({ staffRoleIds: [staffRole.id], ...(logChannel ? { logChannelId: logChannel.id } : {}) })],
+  );
+
+  const panel = await createTicketPanel(context, interaction.guild, {
+    channelId: channel.id,
+    categoryId: category?.id || null,
+    staffRoleIds: [staffRole.id],
+    title: interaction.options.getString('title') || 'Feedback & Reviews',
+    description: interaction.options.getString('description')
+      || 'Tell us what you think. Pick a button, fill in the short form, and a private channel opens where only you and the team can see it.',
+    questions: FEEDBACK_KINDS,
+    color: '#2e7d32',
+    actorId: interaction.user.id,
+    source: 'discord',
+  });
+
+  await interaction.reply({ content: `Feedback panel #${panel.id} posted in ${channel}.`, ephemeral: true });
 }

@@ -3,7 +3,7 @@ import { resolveButtonHandler, resolveCommandHandler } from './handlers/index.js
 
 export async function handleInteraction(context, interaction) {
   try {
-    if (interaction.isButton() && interaction.customId.startsWith('ticket:')) {
+    if ((interaction.isButton() || interaction.isModalSubmit()) && interaction.customId.startsWith('ticket:')) {
       const handler = await resolveButtonHandler('ticket');
       await handler(context, interaction);
       return;
