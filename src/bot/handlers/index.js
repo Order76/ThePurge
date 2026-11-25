@@ -14,11 +14,13 @@ const commandLoaders = {
   economy: () => import('./engagement.js').then((module) => module.handleEconomy),
   ticket: () => import('./tickets.js').then((module) => module.handleTicket),
   inviterole: () => import('./inviteRoles.js').then((module) => module.handleInviteRole),
+  verify: () => import('../../services/verificationService.js').then((module) => module.handleVerifyCommand),
 };
 
 const buttonLoaders = {
   ticket: () => import('./tickets.js').then((module) => module.handleTicketButton),
   inviterole: () => import('../../services/inviteRoleService.js').then((module) => module.handleApprovalButton),
+  verify: () => import('../../services/verificationService.js').then((module) => module.handleVerifyButton),
 };
 
 export async function resolveCommandHandler(commandName) {

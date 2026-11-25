@@ -52,6 +52,7 @@ export const commandData = [
   new SlashCommandBuilder()
     .setName('mod')
     .setDescription('Moderation actions.')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .addSubcommand((command) => command
       .setName('warn')
       .setDescription('Record a warning.')
@@ -72,10 +73,27 @@ export const commandData = [
       .setName('ban')
       .setDescription('Ban a user.')
       .addUserOption((option) => option.setName('user').setDescription('User').setRequired(true))
-      .addStringOption((option) => option.setName('reason').setDescription('Reason').setRequired(false))),
+      .addStringOption((option) => option.setName('reason').setDescription('Reason').setRequired(false))
+      .addBooleanOption((option) => option.setName('delete-messages').setDescription('Also delete their messages from the last 24 hours').setRequired(false)))
+    .addSubcommand((command) => command
+      .setName('unban')
+      .setDescription('Lift a ban (paste the user ID).')
+      .addUserOption((option) => option.setName('user').setDescription('User or user ID').setRequired(true))
+      .addStringOption((option) => option.setName('reason').setDescription('Reason').setRequired(false)))
+    .addSubcommand((command) => command
+      .setName('cases')
+      .setDescription("Show a user's moderation history.")
+      .addUserOption((option) => option.setName('user').setDescription('User').setRequired(true))),
   new SlashCommandBuilder()
     .setName('automod')
     .setDescription('Manage AutoMod rules.')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .addSubcommand((command) => command
+      .setName('protect')
+      .setDescription('Switch on the recommended set: outside invites, mention spam, floods, new-member links.'))
+    .addSubcommand((command) => command
+      .setName('status')
+      .setDescription('List the AutoMod rules that are on.'))
     .addSubcommand((command) => command
       .setName('block-invites')
       .setDescription('Create or update the invite-blocking rule.')
@@ -291,4 +309,38 @@ export const commandData = [
         .setName('reason')
         .setDescription('Close reason')
         .setRequired(false))),
+  new SlashCommandBuilder()
+    .setName('verify')
+    .setDescription('Human verification for new members.')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .addSubcommand((command) => command
+      .setName('setup')
+      .setDescription('Post the Verify panel and hold back the role until people pass.')
+      .addChannelOption((option) => option
+        .setName('channel')
+        .setDescription('Channel for the Verify panel (everyone must be able to see it)')
+        .addChannelTypes(ChannelType.GuildText)
+        .setRequired(true))
+      .addRoleOption((option) => option
+        .setName('role')
+        .setDescription('Role given after passing (the role that lets people talk, e.g. Member)')
+        .setRequired(true))
+      .addChannelOption((option) => option
+        .setName('log-channel')
+        .setDescription('Staff channel for joins, failures and approvals (default: ticket/server log)')
+        .addChannelTypes(ChannelType.GuildText)
+        .setRequired(false))
+      .addIntegerOption((option) => option
+        .setName('min-account-age-days')
+        .setDescription('Accounts younger than this go to staff for approval (0 = off)')
+        .setMinValue(0)
+        .setMaxValue(365)
+        .setRequired(false)))
+    .addSubcommand((command) => command
+      .setName('approve')
+      .setDescription('Verify someone by hand.')
+      .addUserOption((option) => option.setName('user').setDescription('Member').setRequired(true)))
+    .addSubcommand((command) => command
+      .setName('off')
+      .setDescription('Switch verification off (new members get the join role straight away).')),
 ].map((command) => command.toJSON());

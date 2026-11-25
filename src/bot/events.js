@@ -54,7 +54,15 @@ export function wireDiscordEvents(context) {
   });
 
   client.on('guildMemberAdd', async (member) => {
+    await runEventFeature(context, 'raidAlert', () => handleRaidAlert(context, member));
     await runEventFeature(context, 'welcome', () => handleWelcome(context, member));
+    const { loadSettings, handleVerificationJoin } = await import('../services/verificationService.js');
+    const verification = member.user.bot ? null : await loadSettings(context.db, member.guild.id).catch(() => null);
+    if (verification) {
+      // Roles wait until the member passes verification (the invite role is remembered now, while it can be detected).
+      await runEventFeature(context, 'verification', () => handleVerificationJoin(context, member, verification));
+      return;
+    }
     await runEventFeature(context, 'autoroles', () => handleJoinRole(context, member));
     await runEventFeature(context, 'inviteRoles', async () => {
       const { getLogChannelId, handleInviteRoleJoin } = await import('../services/inviteRoleService.js');
@@ -225,6 +233,21 @@ async function handleLeave(context, member) {
       channel,
     }),
   });
+}
+
+async function handleRaidAlert(context, member) {
+  const { trackJoin, RAID_JOINS } = await import('../services/automodService.js');
+  if (!trackJoin(member.guild.id)) return;
+  const { getLogChannelId } = await import('../services/inviteRoleService.js');
+  const logId = await getLogChannelId(context.db, member.guild.id);
+  const channel = logId ? await member.guild.channels.fetch(logId).catch(() => null) : null;
+  if (channel?.isTextBased?.()) {
+    await channel.send({
+      content: `🚨 Raid alert: ${RAID_JOINS}+ people joined in the last minute. Check the member list; consider pausing invites (Server Settings → Safety Setup → Pause invites).`,
+      allowedMentions: { parse: [] },
+    }).catch(() => null);
+  }
+  await context.audit.record({ guildId: member.guild.id, action: 'security.raid_alert', source: 'discord', severity: 'warn' });
 }
 
 async function handleJoinRole(context, member) {

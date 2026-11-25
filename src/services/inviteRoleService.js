@@ -105,6 +105,11 @@ export function rememberInvite(invite) {
   useCache.set(invite.guild.id, counts);
 }
 
+/** True when the code is a live invite to this guild that the bot has seen (used by automod's allow-list). */
+export function isKnownInviteCode(guildId, code) {
+  return Boolean(useCache.get(guildId)?.has(code));
+}
+
 export function forgetInvite(invite) {
   useCache.get(invite?.guild?.id)?.delete(invite.code);
 }
@@ -128,8 +133,8 @@ export async function createRoleInvites(context, guild, channel, actor) {
   return out.map((item) => ({ ...item, url: `https://discord.gg/${item.code}`, approval: isPrivilegedRole(item.role) }));
 }
 
-/** On join: give the role for the invite used, or ask staff to approve a privileged one. Never throws. */
-export async function handleInviteRoleJoin(context, member, { logChannelId } = {}) {
+/** On join: which role invite did this member use? Returns { role, code } or null. Must run at join time. */
+export async function resolveInviteRole(context, member) {
   const guild = member.guild;
   const links = await loadLinks(context.db, guild.id);
   if (Object.keys(links).length === 0) return null;
@@ -141,7 +146,19 @@ export async function handleInviteRoleJoin(context, member, { logChannelId } = {
   if (!link) return null;
   const role = guild.roles.cache.get(link.roleId) || await guild.roles.fetch(link.roleId).catch(() => null);
   if (!role) return null;
+  return { role, code };
+}
 
+/** On join: give the role for the invite used, or ask staff to approve a privileged one. Never throws. */
+export async function handleInviteRoleJoin(context, member, { logChannelId } = {}) {
+  const found = await resolveInviteRole(context, member);
+  if (!found) return null;
+  return grantInviteRole(context, member, found.role, found.code, { logChannelId });
+}
+
+/** Give an invite role now, or post a staff Give/Decline prompt when the role has staff powers. */
+export async function grantInviteRole(context, member, role, code, { logChannelId } = {}) {
+  const guild = member.guild;
   if (!isPrivilegedRole(role)) {
     await member.roles.add(role, `Joined with the ${role.name} invite (${code})`);
     await context.audit?.record?.({ guildId: guild.id, targetId: member.id, action: 'inviterole.given', source: 'discord', details: { code, roleId: role.id } });

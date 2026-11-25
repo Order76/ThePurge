@@ -306,6 +306,17 @@ export async function migrate(db) {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS verification_pending (
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      invite_role_id TEXT,
+      invite_code TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      joined_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (guild_id, user_id)
+    );
+
     INSERT INTO scheduled_jobs (guild_id, channel_id, job_type, payload, interval_seconds, next_run_at)
     SELECT
       purge_configs.guild_id,

@@ -20,6 +20,7 @@ test('all planned public commands are registered', () => {
     'schedule',
     'setup',
     'ticket',
+    'verify',
     'welcome',
   ]);
 });

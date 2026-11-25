@@ -8,6 +8,39 @@ export async function handleAutomod(context, interaction) {
   }
 
   const subcommand = interaction.options.getSubcommand();
+  const { installProtectRules, invalidateAutomodRules } = await import('../../services/automodService.js');
+  invalidateAutomodRules(interaction.guild.id);
+
+  if (subcommand === 'protect') {
+    await installProtectRules(context.db, interaction.guild.id);
+    await context.audit.record({ guildId: interaction.guild.id, actorId: interaction.user.id, action: 'automod.protect_on', source: 'discord' });
+    await interaction.reply({
+      content: [
+        '🛡️ AutoMod protection is on:',
+        '• invite links to other servers are deleted (our own invites are fine)',
+        '• more than 5 mentions in one message: deleted + 10-minute timeout',
+        '• more than 6 messages in 8 seconds: deleted + 5-minute timeout',
+        '• links from members who joined less than 24 hours ago are deleted',
+        'Staff (Manage Messages) are never caught. Every hit is posted to the log channel.',
+      ].join('\n'),
+      ephemeral: true,
+    });
+    return;
+  }
+
+  if (subcommand === 'status') {
+    const result = await context.db.query(
+      "SELECT id, trigger, actions FROM automation_rules WHERE guild_id = $1 AND rule_type = 'automod' AND enabled = TRUE ORDER BY id",
+      [interaction.guild.id],
+    );
+    const lines = result.rows.map((row) => {
+      const t = { ...row.trigger }; delete t.preset;
+      return `#${row.id} ${JSON.stringify(t)} → ${(row.actions || []).map((a) => a.type).join(', ')}`;
+    });
+    await interaction.reply({ content: lines.length ? lines.join('\n').slice(0, 1900) : 'No AutoMod rules are on. Try `/automod protect`.', ephemeral: true });
+    return;
+  }
+
   if (subcommand === 'block-invites') {
     const enabled = interaction.options.getBoolean('enabled', true);
     await context.db.query(
