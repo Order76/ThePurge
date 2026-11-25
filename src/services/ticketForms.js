@@ -19,6 +19,7 @@ export const FEEDBACK_KINDS = [
     label: 'Suggestion',
     emoji: '💡',
     style: 'success',
+    story: 'Story',
     fields: [
       { id: 'subject', label: 'Your idea in one line', style: 'short', required: true, max: 100 },
       { id: 'details', label: 'Tell us more', style: 'paragraph', required: true, max: 1500 },
@@ -29,6 +30,7 @@ export const FEEDBACK_KINDS = [
     label: 'Concern',
     emoji: '⚠️',
     style: 'danger',
+    story: 'Concern',
     fields: [
       { id: 'subject', label: 'What is the concern?', style: 'short', required: true, max: 100 },
       { id: 'details', label: 'What happened?', style: 'paragraph', required: true, max: 1500, placeholder: 'Steps, where in the game, and your device if it is a bug.' },
@@ -108,6 +110,39 @@ export function ticketSubject(kind, answers) {
 
 export function kindChannelName(kind, ticketNumber) {
   return `${kind.key}-${ticketNumber}`.slice(0, 100);
+}
+
+/** Kinds with `story` file a backlog story in this forum channel (stored with the panel's kinds). */
+export function withStoryForum(kinds, forumId) {
+  if (!forumId) return kinds;
+  return kinds.map((kind) => (kind.story ? { ...kind, storyForumId: String(forumId) } : kind));
+}
+
+/**
+ * The backlog story for a ticket: a forum post titled TKT-<id> with the player's answers.
+ * `forumTags` is the forum's available_tags ([{ id, name }]); tags that do not exist are skipped.
+ */
+export function storyPost(kind, answers, { ticketId, reporter, channelId }, forumTags = []) {
+  const wanted = [kind.story, 'New', 'P3 Normal'];
+  const appliedTags = wanted
+    .map((name) => forumTags.find((tag) => tag.name === name)?.id)
+    .filter(Boolean)
+    .slice(0, 5);
+  const fields = [
+    { name: 'User story', value: clip(kind.story === 'Concern'
+      ? `As a player, I ran into a problem: ${answers.subject || '-'}`
+      : `As a player, I want ${answers.subject || '-'}`, 1024) },
+    { name: 'Details', value: clip(answers.details || '-', 1024) },
+    { name: 'Acceptance criteria', value: '☐ Reproduced or agreed\n☐ Fixed or built\n☐ Tested\n☐ Player told in their ticket' },
+    { name: 'Source', value: `Ticket #${ticketId} · <#${channelId}>`, inline: true },
+    { name: 'Reporter', value: `<@${reporter}>`, inline: true },
+  ];
+  return {
+    name: clip(`TKT-${ticketId} · ${kind.label}: ${answers.subject || ''}`, 100),
+    appliedTags,
+    title: clip(`${kind.story}: ${answers.subject || kind.label}`, 256),
+    fields,
+  };
 }
 
 function clip(value, max) {

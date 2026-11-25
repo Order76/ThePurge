@@ -8,7 +8,7 @@ import {
   openTicketFromPanel,
   showTicketForm,
 } from '../../services/ticketService.js';
-import { FEEDBACK_KINDS, parseTicketCustomId } from '../../services/ticketForms.js';
+import { FEEDBACK_KINDS, parseTicketCustomId, withStoryForum } from '../../services/ticketForms.js';
 
 export async function handleTicket(context, interaction) {
   if (!(await isModuleEnabled(context.db, interaction.guild.id, 'tickets'))) {
@@ -189,7 +189,7 @@ async function handleFeedbackPanel(context, interaction) {
     title: interaction.options.getString('title') || 'Feedback & Reviews',
     description: interaction.options.getString('description')
       || 'Tell us what you think. Pick a button, fill in the short form, and a private channel opens where only you and the team can see it.',
-    questions: FEEDBACK_KINDS,
+    questions: withStoryForum(FEEDBACK_KINDS, interaction.options.getChannel('backlog')?.id),
     color: '#2e7d32',
     actorId: interaction.user.id,
     source: 'discord',

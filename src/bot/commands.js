@@ -254,6 +254,11 @@ export const commandData = [
         .setDescription('Category where ticket channels are created')
         .addChannelTypes(ChannelType.GuildCategory)
         .setRequired(false))
+      .addChannelOption((option) => option
+        .setName('backlog')
+        .setDescription('Forum where Concern and Suggestion tickets are filed as backlog stories')
+        .addChannelTypes(ChannelType.GuildForum)
+        .setRequired(false))
       .addStringOption((option) => option
         .setName('title')
         .setDescription('Panel title (default: Feedback & Reviews)')

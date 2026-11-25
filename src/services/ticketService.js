@@ -17,6 +17,7 @@ import {
   kindChannelName,
   panelKinds,
   ticketSubject,
+  storyPost,
   validateAnswers,
 } from './ticketForms.js';
 
@@ -223,6 +224,14 @@ async function openTicket(context, interaction, panel, kind, answers) {
     color: panel.color,
   });
 
+  if (kind?.story && kind.storyForumId) {
+    await postBacklogStory(interaction.guild, kind, answers, {
+      ticketId: ticket.rows[0].id,
+      reporter: interaction.user.id,
+      channelId: channel.id,
+    }, panel.color);
+  }
+
   await context.audit.record({
     guildId: interaction.guild.id,
     actorId: interaction.user.id,
@@ -236,6 +245,23 @@ async function openTicket(context, interaction, panel, kind, answers) {
     ok: true,
     message: kind ? `Thanks! Your ${kind.label.toLowerCase()} is in ${channel}. The team can reply to you there.` : `Ticket opened: ${channel}.`,
   };
+}
+
+/** File a story in the backlog forum for a Concern or Suggestion ticket. Never throws. */
+async function postBacklogStory(guild, kind, answers, refs, color) {
+  try {
+    const forum = await guild.channels.fetch(kind.storyForumId).catch(() => null);
+    if (!forum?.threads?.create) return;
+    const story = storyPost(kind, answers, refs, forum.availableTags || []);
+    const embed = new EmbedBuilder().setTitle(story.title).setColor(parseColor(color)).addFields(story.fields).setTimestamp(new Date());
+    await forum.threads.create({
+      name: story.name,
+      appliedTags: story.appliedTags,
+      message: { embeds: [embed], allowedMentions: { parse: [] } },
+    });
+  } catch (error) {
+    console.warn('[tickets] backlog story failed:', error.message);
+  }
 }
 
 /** Post to the ticket log channel (tickets module config, else the server log channel). Never throws. */

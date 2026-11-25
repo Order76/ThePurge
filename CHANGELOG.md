@@ -9,6 +9,7 @@ All notable changes to ThePurge are documented here.
 - Added `/ticket feedbackpanel`: one panel with Feedback, Suggestion, Concern and Review buttons. Each button opens a short pop-up form (Review includes a 1-5 star rating).
 - Form answers open a private ticket channel named `<kind>-<number>`, are shown in the ticket, saved in `tickets.form_responses`, and posted to the staff log channel on open and close.
 - Panels now use the `questions` column to hold their ticket kinds; panels with no kinds keep the classic single Open Ticket button.
+- `/ticket feedbackpanel backlog:` (optional forum channel): Concern and Suggestion tickets also file a backlog story post (`TKT-<id> · Kind: subject`) with a user story, details, acceptance checklist, a link to the ticket and the forum tags for type, New and P3 Normal when they exist.
 
 ### Unchanged
 

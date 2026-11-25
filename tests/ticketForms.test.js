@@ -11,6 +11,8 @@ import {
   panelKinds,
   parseTicketCustomId,
   stars,
+  storyPost,
+  withStoryForum,
   ticketSubject,
   validateAnswers,
 } from '../src/services/ticketForms.js';
@@ -88,14 +90,14 @@ test('ticket command has the feedbackpanel subcommand', () => {
   assert.deepEqual(ticket.options.map((option) => option.name).sort(), ['claim', 'close', 'feedbackpanel', 'panel', 'quicksetup']);
 });
 
-function fakeContext({ existing = false, logChannelId = '555' } = {}) {
+function fakeContext({ existing = false, logChannelId = '555', panel = formPanel } = {}) {
   const queries = [];
   const sent = { ticket: [], log: [] };
   const created = [];
   const db = {
     async query(sql, params) {
       queries.push({ sql, params });
-      if (sql.includes('FROM ticket_panels')) return { rowCount: 1, rows: [formPanel] };
+      if (sql.includes('FROM ticket_panels')) return { rowCount: 1, rows: [panel] };
       if (sql.includes("status = 'open'") && sql.includes('form_responses')) return existing ? { rowCount: 1, rows: [{ id: 1, channel_id: '111' }] } : { rowCount: 0, rows: [] };
       if (sql.includes('COUNT(*)')) return { rowCount: 1, rows: [{ count: 11 }] };
       if (sql.includes('INSERT INTO tickets')) return { rowCount: 1, rows: [{ id: 42 }] };
@@ -105,16 +107,22 @@ function fakeContext({ existing = false, logChannelId = '555' } = {}) {
   };
   const ticketChannel = { id: '222', toString: () => '<#222>', send: async (m) => { sent.ticket.push(m); } };
   const logChannel = { id: '555', isTextBased: () => true, send: async (m) => { sent.log.push(m); } };
+  const stories = [];
+  const forum = {
+    id: '777',
+    availableTags: [{ id: 't1', name: 'Concern' }, { id: 't2', name: 'Story' }, { id: 't3', name: 'New' }, { id: 't4', name: 'P3 Normal' }],
+    threads: { create: async (opts) => { stories.push(opts); return { id: '888' }; } },
+  };
   const guild = {
     id: 'g1',
     roles: { everyone: { id: 'g1' } },
     channels: {
       create: async (opts) => { created.push(opts); return ticketChannel; },
-      fetch: async (id) => (id === '555' ? logChannel : null),
+      fetch: async (id) => (id === '555' ? logChannel : id === '777' ? forum : null),
     },
   };
   const context = { db, client: { user: { id: 'bot' } }, audit: { record: async () => {} } };
-  return { context, guild, queries, sent, created };
+  return { context, guild, queries, sent, created, stories };
 }
 
 function fakeModal(guild, values) {
@@ -158,4 +166,36 @@ test('unknown kind is refused', async () => {
   const { context, guild } = fakeContext();
   const result = await openFormTicket(context, fakeModal(guild, {}), '7', 'nope');
   assert.equal(result.ok, false);
+});
+
+test('concern and suggestion file backlog stories; feedback and review do not', () => {
+  const kinds = withStoryForum(FEEDBACK_KINDS, '777');
+  assert.deepEqual(kinds.filter((k) => k.storyForumId === '777').map((k) => k.key), ['suggestion', 'concern']);
+  assert.equal(withStoryForum(FEEDBACK_KINDS, null), FEEDBACK_KINDS);
+});
+
+test('story post is titled TKT-<id> and tagged by type, New and P3', () => {
+  const concern = findKind(formPanel, 'concern');
+  const tagsAvail = [{ id: 'a', name: 'Concern' }, { id: 'b', name: 'New' }, { id: 'c', name: 'P3 Normal' }];
+  const story = storyPost(concern, { subject: 'Stuck on the pier', details: 'Boat will not launch' }, { ticketId: 9, reporter: 'u1', channelId: '222' }, tagsAvail);
+  assert.equal(story.name, 'TKT-9 · Concern: Stuck on the pier');
+  assert.deepEqual(story.appliedTags, ['a', 'b', 'c']);
+  assert.match(story.fields.find((f) => f.name === 'Source').value, /Ticket #9 · <#222>/);
+});
+
+test('a concern ticket on a panel with a backlog forum files one story', async () => {
+  const panel = { ...formPanel, questions: withStoryForum(FEEDBACK_KINDS, '777') };
+  const { context, guild, stories } = fakeContext({ panel });
+  const result = await openFormTicket(context, fakeModal(guild, { subject: 'Crash at the lake', details: 'On my phone' }), '7', 'concern');
+  assert.equal(result.ok, true);
+  assert.equal(stories.length, 1);
+  assert.equal(stories[0].name, 'TKT-42 · Concern: Crash at the lake');
+  assert.deepEqual(stories[0].appliedTags, ['t1', 't3', 't4']);
+});
+
+test('a review ticket files no story', async () => {
+  const panel = { ...formPanel, questions: withStoryForum(FEEDBACK_KINDS, '777') };
+  const { context, guild, stories } = fakeContext({ panel });
+  await openFormTicket(context, fakeModal(guild, { rating: '5', subject: 'Great', details: 'Yes' }), '7', 'review');
+  assert.equal(stories.length, 0);
 });
